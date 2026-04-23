@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Escaperoom 6S</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap');
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --gold: #c9954a; --gold-light: #e8b96a; --gold-dim: #7a5a2a;
+      --stone: #1a1410; --stone2: #231c14; --stone3: #2e251a;
+      --text: #e8d8b8; --muted: #a08060;
+    }
+
+    body {
+      background: var(--stone);
+      font-family: 'Crimson Text', serif;
+      color: var(--text);
+    }
+
+    .page-center {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem 1.5rem;
+      position: relative;
+    }
+    .page-center::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: radial-gradient(ellipse at 50% 0%, rgba(201,149,74,0.12) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .page-game {
+      min-height: 100vh;
+      padding: 2rem 1.5rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .screen { display: none; width: 100%; }
+    .screen.active { display: flex; }
+
+    #screen-start, #screen-uitleg {
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .card {
+      max-width: 560px;
+      width: 100%;
+      text-align: center;
+      animation: fadeIn 0.5s ease;
+      position: relative;
+      z-index: 1;
+    }
+
+    @keyframes fadeIn { from { opacity:0; transform: translateY(10px); } to { opacity:1; transform:translateY(0); } }
+    @keyframes glow { 0%,100% { text-shadow: 0 0 20px rgba(201,149,74,0.4); } 50% { text-shadow: 0 0 50px rgba(201,149,74,0.8); } }
+    @keyframes flicker { 0%,100%{opacity:1;}50%{opacity:0.85;}92%{opacity:0.7;}95%{opacity:1;} }
+    @keyframes popIn { 0%{transform:scale(0.6);opacity:0;} 70%{transform:scale(1.1);} 100%{transform:scale(1);opacity:1;} }
+
+    h1 {
+      font-family: 'Cinzel', serif;
+      font-size: clamp(1.8rem, 5vw, 2.8rem);
+      font-weight: 700; color: var(--gold-light);
+      letter-spacing: 0.08em;
+      animation: glow 3s ease-in-out infinite, flicker 8s infinite;
+      margin-bottom: 0.4rem;
+    }
+    .subtitle { font-size: 1rem; color: var(--muted); font-style: italic; letter-spacing: 0.05em; margin-bottom: 2rem; }
+    .torch { font-size: 1.8rem; display: inline-block; animation: flicker 3s infinite; margin-bottom: 0.5rem; }
+    .divider { width: 180px; height: 1px; background: linear-gradient(to right, transparent, var(--gold-dim), transparent); margin: 1.2rem auto; }
+
+    .btn {
+      font-family: 'Cinzel', serif; font-size: 0.9rem; letter-spacing: 0.1em;
+      padding: 0.8rem 2.2rem; border: 1px solid var(--gold);
+      background: rgba(201,149,74,0.18); color: var(--gold-light);
+      cursor: pointer; transition: all 0.2s ease; border-radius: 3px; text-transform: uppercase;
+    }
+    .btn:hover { background: rgba(201,149,74,0.35); color: #fff; border-color: var(--gold-light); }
+    .btn:active { transform: scale(0.97); }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #7a4f1a, #c9954a);
+      color: #1a1008; font-weight: 700; border: none;
+      box-shadow: 0 2px 14px rgba(201,149,74,0.4);
+    }
+    .btn-primary:hover { background: linear-gradient(135deg, #a06820, #e8b96a); box-shadow: 0 4px 20px rgba(201,149,74,0.55); color: #0e0a04; }
+
+    .btn-sm { padding: 0.5rem 1.2rem; font-size: 0.75rem; }
+    .btn-danger { border-color: #5a2a2a; color: #c07070; background: transparent; }
+    .btn-danger:hover { background: rgba(154,58,58,0.2); }
+
+    .lore-box {
+      background: var(--stone2); border: 1px solid var(--gold-dim); border-radius: 4px;
+      padding: 1.2rem 1.5rem; text-align: left; font-size: 1.05rem; line-height: 1.75;
+      color: var(--text); margin: 1.2rem 0 1.5rem;
+    }
+    .note-banner {
+      background: rgba(201,149,74,0.08); border: 1px solid var(--gold-dim);
+      border-left: 3px solid var(--gold); border-radius: 3px;
+      padding: 0.7rem 1rem; font-size: 0.9rem; color: var(--muted);
+      font-style: italic; margin-bottom: 1.5rem; text-align: left;
+    }
+
+    .game-inner { max-width: 640px; width: 100%; animation: fadeIn 0.5s ease; }
+
+    .progress-bar { width: 100%; height: 4px; background: var(--stone3); border-radius: 2px; margin-bottom: 1.5rem; overflow: hidden; }
+    .progress-fill { height: 100%; background: linear-gradient(to right, var(--gold-dim), var(--gold)); border-radius: 2px; transition: width 0.4s ease; }
+
+    .grid-label { font-family: 'Cinzel', serif; font-size: 0.75rem; letter-spacing: 0.12em; color: var(--muted); text-transform: uppercase; margin-bottom: 0.8rem; }
+
+    #btn-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(52px, 1fr)); gap: 8px; margin-bottom: 1.5rem; }
+
+    .q-btn {
+      font-family: 'Cinzel', serif; font-size: 0.95rem; font-weight: 700;
+      padding: 0.65rem 0; border: 1px solid var(--gold-dim);
+      background: rgba(201,149,74,0.1); color: var(--gold-light);
+      cursor: pointer; border-radius: 3px; transition: all 0.18s;
+    }
+    .q-btn:hover { background: rgba(201,149,74,0.28); border-color: var(--gold); transform: translateY(-2px); box-shadow: 0 3px 10px rgba(201,149,74,0.2); }
+    .q-btn.solved { background: rgba(50,120,60,0.2); border-color: #3a6a3a; color: #6ab87a; cursor: default; }
+    .q-btn.solved:hover { transform: none; box-shadow: none; }
+
+    .answers-label { font-family: 'Cinzel', serif; font-size: 0.7rem; letter-spacing: 0.12em; color: var(--muted); text-transform: uppercase; margin-bottom: 0.7rem; }
+    .answers-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(60px, 1fr)); gap: 6px; margin-bottom: 1.5rem; }
+    .ans-box { background: var(--stone2); border: 1px solid var(--stone3); border-radius: 3px; padding: 5px 4px; font-size: 0.85rem; text-align: center; color: var(--muted); transition: all 0.2s; }
+    .ans-box.filled { border-color: var(--gold-dim); color: var(--gold-light); }
+
+    .final-section {
+      padding: 1.4rem; background: var(--stone2);
+      border: 1px solid var(--gold); border-radius: 4px;
+      animation: fadeIn 0.5s ease; margin-bottom: 2rem;
+    }
+    .final-section h3 { font-family: 'Cinzel', serif; font-size: 1rem; color: var(--gold-light); letter-spacing: 0.08em; margin-bottom: 0.6rem; }
+    .final-formula {
+      font-family: 'Cinzel', serif; font-size: 0.95rem; color: var(--gold);
+      margin: 0.6rem 0 1rem; line-height: 2; letter-spacing: 0.02em;
+      word-break: break-word;
+    }
+    .final-formula span { color: var(--gold-light); }
+    .formula-tip { font-size: 0.85rem; color: var(--muted); font-style: italic; margin-bottom: 1rem; }
+
+    input[type=text] {
+      background: var(--stone); border: 1px solid var(--gold-dim); color: var(--text);
+      font-family: 'Cinzel', serif; font-size: 1.2rem; letter-spacing: 0.15em;
+      padding: 0.5rem 1rem; border-radius: 3px; width: 120px; text-align: center; outline: none;
+    }
+    input[type=text]:focus { border-color: var(--gold); }
+
+    .modal-feedback { font-size: 1rem; min-height: 1.4em; margin: 0.4rem 0; }
+    .ok { color: #6ab87a; }
+    .err { color: #c07070; }
+
+    .overlay {
+      position: fixed; inset: 0; background: rgba(10,8,5,0.88);
+      display: none; align-items: center; justify-content: center; z-index: 100;
+    }
+    .overlay.open { display: flex; animation: fadeIn 0.2s ease; }
+
+    .modal-box {
+      background: var(--stone2); border: 1px solid var(--gold-dim); border-radius: 6px;
+      padding: 1.8rem 2rem; width: min(420px,92vw); text-align: center;
+    }
+    .modal-num { font-family: 'Cinzel', serif; font-size: 2.5rem; color: var(--gold); line-height: 1; margin-bottom: 0.3rem; }
+    .modal-q { font-size: 1.15rem; color: var(--text); margin: 0.8rem 0 1.2rem; line-height: 1.6; }
+    .modal-options { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 1rem; }
+    .opt-btn {
+      font-family: 'Crimson Text', serif; font-size: 1rem; padding: 0.7rem 0.8rem;
+      border: 1px solid rgba(201,149,74,0.3); background: rgba(201,149,74,0.07);
+      color: var(--text); cursor: pointer; border-radius: 3px; transition: all 0.15s; text-align: left;
+    }
+    .opt-btn:hover { border-color: var(--gold); background: rgba(201,149,74,0.18); }
+    .opt-btn.correct { background: rgba(50,120,60,0.25); border-color: #4a8a4a; color: #8aca8a; pointer-events:none; }
+    .opt-btn.wrong { background: rgba(120,40,40,0.3); border-color: #8a3a3a; color: #ca7a7a; pointer-events:none; }
+    .opt-btn.disabled { opacity: 0.35; pointer-events: none; }
+
+    #screen-victory { flex-direction: column; align-items: center; justify-content: center; }
+    .victory-card { max-width: 480px; width: 100%; text-align: center; animation: fadeIn 0.6s ease; position: relative; z-index: 1; }
+    .victory-big {
+      font-family: 'Cinzel', serif;
+      font-size: clamp(5rem, 20vw, 9rem);
+      color: var(--gold-light);
+      line-height: 1;
+      animation: glow 2s ease-in-out infinite, popIn 0.7s ease;
+      margin: 0.3rem 0 0.8rem;
+    }
+    .victory-text { color: var(--muted); font-style: italic; font-size: 1.1rem; margin-bottom: 1.5rem; }
+  </style>
+</head>
+<body>
+
+<!-- START -->
+<div id="screen-start" class="screen page-center active">
+  <div class="card">
+    <div class="torch">🔥</div>
+    <h1>ESCAPEROOM 6S</h1>
+    <p class="subtitle">Kun jij de vragen oplossen?</p>
+    <div class="divider"></div>
+    <p style="color:var(--muted);font-size:1rem;margin-bottom:1.5rem;">Beantwoord alle vragen om de geheime code te ontsluiten.</p>
+    <button class="btn btn-primary" onclick="showScreen('uitleg')">Begin de zoektocht</button>
+    <p style="font-size:0.75rem;color:var(--gold-dim);margin-top:1.5rem;letter-spacing:0.06em;">escaperoom.littleb.it</p>
+  </div>
+</div>
+
+<!-- UITLEG -->
+<div id="screen-uitleg" class="screen page-center">
+  <div class="card">
+    <h1 style="font-size:1.5rem;margin-bottom:0.3rem;">De Regels</h1>
+    <div class="divider"></div>
+    <div class="note-banner">⚠️ Dit is één onderdeel van de escaperoom — los alle vragen op om Loïc zijn code-fragment te ontsluiten.</div>
+    <div class="lore-box">
+      <p>Je hebt een vraag met jouw klasnummer en je lost alleen die op!</p>
+      <br>
+      <p>Kies jouw vraagnummer uit het rooster. Kies het juiste antwoord. Elke opgeloste vraag onthult een stukje van de code.</p>
+      <br>
+      <p>Als alle vragen zijn opgelost, verschijnt de eindformule. Dat cijfer heb je nodig om alles op te lossen.</p>
+    </div>
+    <button class="btn btn-primary" onclick="startGame()">De vragen starten!</button>
+  </div>
+</div>
+
+<!-- GAME -->
+<div id="screen-game" class="screen page-game">
+  <div class="game-inner">
+    <div style="text-align:center;margin-bottom:1rem;">
+      <h1 style="font-size:1.4rem;">ESCAPEROOM 6S</h1>
+      <p class="subtitle" id="progress-text">0 / 22 opgelost</p>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="prog-fill" style="width:0%"></div></div>
+    <p class="grid-label">Kies een vraag</p>
+    <div id="btn-grid"></div>
+    <p class="answers-label">Jouw antwoorden</p>
+    <div class="answers-grid" id="ans-grid"></div>
+
+    <div id="final-section" style="display:none;">
+      <div class="final-section">
+        <h3>🗝 Eindformule</h3>
+        <p style="color:var(--muted);font-size:0.95rem;margin-bottom:0.4rem;">Alle antwoorden vormen samen de code:</p>
+        <div class="final-formula">
+          ((<span id="f2">V2</span> + <span id="f3">V3</span>) × <span id="f4">V4</span>)
+          + <span id="f5">V5</span> − <span id="f6">V6</span>
+          + <span id="f7">V7</span> + <span id="f8">V8</span>
+          + <span id="f9">V9</span> − <span id="f10">V10</span>
+          + <span id="f11">V11</span> + <span id="f13">V13</span>
+          + <span id="f14">V14</span> + <span id="f15">V15</span>
+          − <span id="f16">V16</span> + <span id="f17">V17</span>
+          + <span id="f18">V18</span> + <span id="f19">V19</span>
+          + <span id="f20">V20</span> − <span id="f21">V21</span>
+          + <span id="f22">V22</span> + <span id="f23">V23</span>
+          + <span id="f25">V25</span>
+        </div>
+        <p class="formula-tip">💡 Tip: deel het antwoord door 13 👁️</p>
+        <div style="display:flex;align-items:center;gap:0.8rem;justify-content:center;margin-top:0.8rem;">
+          <input type="text" id="final-input" placeholder="code" maxlength="4">
+          <button class="btn btn-primary" onclick="checkFinal()">Ontgrendel</button>
+        </div>
+        <p id="final-feedback" class="modal-feedback" style="margin-top:0.6rem;text-align:center;"></p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- VICTORY -->
+<div id="screen-victory" class="screen page-center">
+  <div class="victory-card">
+    <div class="torch">🔥</div>
+    <h1 style="font-size:1.6rem;margin-bottom:0.2rem;">Goed gedaan!</h1>
+    <div class="divider"></div>
+    <p style="color:var(--muted);font-size:1rem;margin-bottom:0.2rem;">De geheime code is:</p>
+    <div class="victory-big">3</div>
+    <p class="victory-text">Onthoud dit getal — je hebt het nodig voor de rest van de escaperoom.</p>
+    <button class="btn btn-primary" onclick="restartGame()">Speel opnieuw</button>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div id="modal-overlay" class="overlay">
+  <div class="modal-box">
+    <div class="modal-num" id="modal-num"></div>
+    <div class="divider" style="margin:0.5rem auto;"></div>
+    <div class="modal-q" id="modal-q"></div>
+    <div class="modal-options" id="modal-opts"></div>
+    <p class="modal-feedback" id="modal-fb"></p>
+    <button class="btn btn-sm btn-danger" onclick="closeModal()" style="margin-top:0.4rem;">Terug</button>
+  </div>
+</div>
+
+<script>
+const QUESTIONS = [
+  {n:2,  q:"Welk woord is correct gespeld?",
+         opts:["apriciëren","appréciëren","appreciëren","apreciëren"],      a:1},
+  {n:3,  q:"Een rechthoek is 14 cm lang en 9 cm breed. Wat is de omtrek?",
+         opts:["46 cm","42 cm","50 cm","36 cm"],                            a:0},
+  {n:4,  q:"23 × 17 = ?",
+         opts:["371","381","391","401"],                                     a:2},
+  {n:5,  q:"Welke oceaan is de grootste ter wereld?",
+         opts:["Grote Oceaan","Atlantische Oceaan","Indische Oceaan","Arctische Oceaan"], a:0},
+  {n:6,  q:"Welke rivier stroomt door Brussel?",
+         opts:["Maas","Schelde","Leie","Zenne"],                            a:3},
+  {n:7,  q:"Hoeveel graden telt een rechte hoek?",
+         opts:["45°","90°","180°","360°"],                                   a:1},
+  {n:8,  q:"864 : 12 = ?",
+         opts:["62","66","70","72"],                                         a:3},
+  {n:9,  q:"Wat is ¾ van 120?",
+         opts:["60","75","90","100"],                                        a:2},
+  {n:10, q:"Hoeveel landen telt de Europese Unie (EU)?",
+         opts:["24","27","30","32"],                                         a:1},
+  {n:11, q:"Welke planeet is het dichtst bij de zon?",
+         opts:["Mercurius","Venus","Mars","Aarde"],                          a:0},
+  {n:13, q:"Een trein rijdt 95 km/u. Hoeveel km legt hij af in 3 uur?",
+         opts:["255 km","270 km","285 km","300 km"],                        a:2},
+  {n:14, q:"Hoeveel symmetrie-assen heeft een vierkant?",
+         opts:["2","4","6","8"],                                             a:1},
+  {n:15, q:"Welke stof komt vrij bij verbranding en is slecht voor het klimaat?",
+         opts:["Zuurstof","Stikstof","Waterdamp","CO₂"],                   a:3},
+  {n:16, q:"Wat is de oppervlakte van een rechthoek van 8 cm × 11 cm?",
+         opts:["88 cm²","80 cm²","96 cm²","76 cm²"],                       a:0},
+  {n:17, q:"45 × 24 = ?",
+         opts:["980","1000","1080","1120"],                                  a:2},
+  {n:18, q:"Hoeveel dagen heeft februari in een schrikkeljaar?",
+         opts:["29","28","30","31"],                                         a:0},
+  {n:19, q:"Wat is 30% van 450?",
+         opts:["100","135","150","180"],                                     a:1},
+  {n:20, q:"Hoeveel milliliter is 2,5 liter?",
+         opts:["250 ml","1500 ml","2500 ml","25 000 ml"],                  a:2},
+  {n:21, q:"Welke windrichting is het tegenovergestelde van noordoost?",
+         opts:["Zuidwest","Zuidoost","Noordwest","Zuid"],                    a:0},
+  {n:22, q:"952 : 8 = ?",
+         opts:["109","115","119","124"],                                     a:2},
+  {n:23, q:"Welke schrijver schreef 'Pietje Bell'?",
+         opts:["Annie M.G. Schmidt","Chris van Abkoude","Roald Dahl","Paul Biegel"], a:1},
+  {n:25, q:"Een fiets kost €240. Je krijgt 25% korting. Wat betaal je?",
+         opts:["€160","€170","€175","€180"],                                a:3},
+];
+
+const CORRECT_CODE = 3;
+
+let solved = new Set();
+let userAnswers = {};
+let currentQ = null;
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + id).classList.add('active');
+}
+
+function startGame() {
+  showScreen('game');
+  buildGrid();
+  updateAnswers();
+}
+
+function buildGrid() {
+  const grid = document.getElementById('btn-grid');
+  grid.innerHTML = '';
+  QUESTIONS.forEach(q => {
+    const btn = document.createElement('button');
+    btn.className = 'q-btn' + (solved.has(q.n) ? ' solved' : '');
+    btn.textContent = q.n;
+    btn.id = 'qbtn-' + q.n;
+    if (!solved.has(q.n)) btn.onclick = () => openQuestion(q);
+    grid.appendChild(btn);
+  });
+}
+
+function updateAnswers() {
+  const grid = document.getElementById('ans-grid');
+  grid.innerHTML = '';
+  QUESTIONS.forEach(q => {
+    const box = document.createElement('div');
+    const val = userAnswers[q.n];
+    box.className = 'ans-box' + (val !== undefined ? ' filled' : '');
+    box.textContent = q.n + ' = ' + (val !== undefined ? val : '…');
+    grid.appendChild(box);
+  });
+  const count = solved.size, total = QUESTIONS.length;
+  document.getElementById('progress-text').textContent = count + ' / ' + total + ' opgelost';
+  document.getElementById('prog-fill').style.width = Math.round((count / total) * 100) + '%';
+}
+
+function openQuestion(q) {
+  currentQ = q;
+  document.getElementById('modal-num').textContent = q.n;
+  document.getElementById('modal-q').textContent = q.q;
+  document.getElementById('modal-fb').textContent = '';
+  document.getElementById('modal-fb').className = 'modal-feedback';
+
+  const opts = document.getElementById('modal-opts');
+  opts.innerHTML = '';
+  q.opts.forEach((opt, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'opt-btn';
+    btn.dataset.index = i;
+    btn.innerHTML = '<span style="color:var(--gold-dim);font-family:Cinzel,serif;margin-right:4px;">' + (i + 1) + '.</span>' + opt;
+    btn.onclick = () => selectOption(i);
+    opts.appendChild(btn);
+  });
+
+  document.getElementById('modal-overlay').classList.add('open');
+}
+
+function selectOption(index) {
+  const q = currentQ;
+  if (!q) return;
+  const allBtns = document.querySelectorAll('.opt-btn');
+  const fb = document.getElementById('modal-fb');
+
+  allBtns.forEach(b => b.onclick = null);
+
+  if (index === q.a) {
+    allBtns[index].classList.add('correct');
+    fb.textContent = '✓ Juist!';
+    fb.className = 'modal-feedback ok';
+
+    solved.add(q.n);
+    userAnswers[q.n] = index + 1;
+
+    const qBtn = document.getElementById('qbtn-' + q.n);
+    if (qBtn) { qBtn.classList.add('solved'); qBtn.onclick = null; }
+
+    const span = document.getElementById('f' + q.n);
+    if (span) span.textContent = index + 1;
+
+    updateAnswers();
+    setTimeout(() => { closeModal(); checkEnd(); }, 600);
+
+  } else {
+    allBtns[index].classList.add('wrong');
+    fb.textContent = '✗ Fout, probeer opnieuw.';
+    fb.className = 'modal-feedback err';
+
+    setTimeout(() => {
+      allBtns[index].classList.remove('wrong');
+      allBtns[index].classList.add('disabled');
+      fb.textContent = '';
+      fb.className = 'modal-feedback';
+      allBtns.forEach((b, i) => {
+        if (!b.classList.contains('disabled')) {
+          b.onclick = () => selectOption(i);
+        }
+      });
+    }, 700);
+  }
+}
+
+function closeModal() {
+  document.getElementById('modal-overlay').classList.remove('open');
+  currentQ = null;
+}
+
+function checkEnd() {
+  if (solved.size === QUESTIONS.length) {
+    const fs = document.getElementById('final-section');
+    fs.style.display = 'block';
+    setTimeout(() => fs.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100);
+  }
+}
+
+function checkFinal() {
+  const input = document.getElementById('final-input').value.trim();
+  const fb = document.getElementById('final-feedback');
+  if (parseInt(input) === CORRECT_CODE) {
+    showScreen('victory');
+  } else {
+    fb.textContent = '✗ Dat is niet de juiste code.';
+    fb.className = 'modal-feedback err';
+  }
+}
+
+function restartGame() {
+  solved.clear();
+  userAnswers = {};
+  currentQ = null;
+  document.getElementById('final-section').style.display = 'none';
+  document.getElementById('final-input').value = '';
+  document.getElementById('final-feedback').textContent = '';
+  QUESTIONS.forEach(q => {
+    const span = document.getElementById('f' + q.n);
+    if (span) span.textContent = 'V' + q.n;
+  });
+  showScreen('start');
+}
+
+document.getElementById('modal-overlay').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+</script>
+</body>
+</html>
